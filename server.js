@@ -5,6 +5,11 @@ const crypto = require('crypto');
 const app = express();
 app.use(express.json());
 
+// Serves any file sitting next to this one — map.png included — at its
+// own filename (e.g. /map.png). Without this, only the explicit routes
+// below (like '/') are reachable and everything else 404s.
+app.use(express.static(__dirname));
+
 // index.html lives right next to this file (repo root), not in a
 // separate "public" folder — so we serve it directly from __dirname.
 app.get('/', (req, res) => {
