@@ -51,15 +51,20 @@
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
   .panel h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
   .panel .sub { color: var(--ink-muted); font-size: 13px; margin: 0 0 14px; }
-  .map-wrap { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
-  svg.campusmap { width: 100%; height: auto; display: block; touch-action: none; cursor: crosshair; }
+
+  .map-wrap { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); cursor: crosshair; touch-action: manipulation; }
+  .map-wrap img#campusPhoto { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
+  svg.campusmap { width: 100%; height: auto; display: none; }
   .zone { stroke: var(--line); stroke-width: 1; }
   .zone-label { fill: var(--ink-muted); font-size: 9px; font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: 0.03em; }
   .landmark-dot { fill: var(--ink-muted); opacity: 0.6; }
   .landmark-label { fill: var(--ink-muted); font-size: 7.3px; font-family: 'Inter', sans-serif; }
   .path-line { stroke: var(--surface); stroke-width: 4; stroke-linecap: round; fill: none; opacity: 0.9; }
-  .pin { stroke: var(--surface); stroke-width: 1.5; }
-  .pin.draft { stroke: var(--ink); stroke-width: 2; }
+
+  .pin-overlay { position: absolute; inset: 0; pointer-events: none; }
+  .pin-dot { position: absolute; width: 13px; height: 13px; margin-left: -6.5px; margin-top: -6.5px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .pin-dot.draft { border-color: var(--ink); width: 16px; height: 16px; margin-left: -8px; margin-top: -8px; }
+
   .map-note { font-size: 11.5px; color: var(--ink-muted); margin-top: 8px; }
   .field-inline { margin-top: 12px; }
   .field-inline label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 5px; }
@@ -107,80 +112,58 @@
   <div class="layout">
     <section class="panel">
       <h2>Where it's been seen</h2>
-      <p class="sub">Click anywhere on the campus map to drop a pin, or pick a building below.</p>
-      <div class="map-wrap">
+      <p class="sub">Tap anywhere on the campus map to drop a pin, or pick a building below.</p>
+      <div class="map-wrap" id="mapWrap">
+        <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
         <svg class="campusmap" viewBox="0 0 420 560" id="campusSvg" aria-label="Schematic map of Santa Clara University campus">
           <rect class="zone" x="8" y="8" width="404" height="544" rx="10" fill="var(--surface)"></rect>
-
           <rect class="zone" x="20" y="20" width="380" height="76" rx="8" fill="var(--zone-1)"></rect>
           <text class="zone-label" x="210" y="34" text-anchor="middle">NORTH CAMPUS</text>
-
           <rect class="zone" x="20" y="102" width="380" height="76" rx="8" fill="var(--zone-2)"></rect>
           <text class="zone-label" x="210" y="116" text-anchor="middle">ACADEMIC CORE &amp; ENTRANCE</text>
-
           <rect class="zone" x="20" y="184" width="380" height="130" rx="8" fill="var(--zone-3)"></rect>
           <text class="zone-label" x="210" y="198" text-anchor="middle">MISSION &amp; STUDENT LIFE</text>
-
           <rect class="zone" x="20" y="320" width="380" height="120" rx="8" fill="var(--zone-4)"></rect>
           <text class="zone-label" x="210" y="334" text-anchor="middle">RESIDENCE &amp; ATHLETICS</text>
-
           <rect class="zone" x="20" y="446" width="380" height="90" rx="8" fill="var(--zone-5)"></rect>
           <text class="zone-label" x="210" y="460" text-anchor="middle">SOUTH OPERATIONS</text>
-
           <polyline class="path-line" points="300,140 180,196 160,252"></polyline>
-
           <circle class="landmark-dot" cx="225" cy="150" r="3"></circle>
           <text class="landmark-label" x="231" y="153">Vari Hall</text>
-
           <circle class="landmark-dot" cx="300" cy="140" r="3"></circle>
           <text class="landmark-label" x="245" y="132">Main Entrance / Palm Dr</text>
-
           <circle class="landmark-dot" cx="180" cy="196" r="3"></circle>
           <text class="landmark-label" x="186" y="199">Abby Sobrato Mall</text>
-
           <circle class="landmark-dot" cx="302" cy="212" r="3"></circle>
           <text class="landmark-label" x="308" y="215">Sobrato Discovery &amp; Innovation</text>
-
           <circle class="landmark-dot" cx="362" cy="232" r="3"></circle>
           <text class="landmark-label" x="313" y="248" text-anchor="middle">Stevens Stadium / Buck Shaw</text>
-
           <circle class="landmark-dot" cx="82" cy="242" r="3"></circle>
           <text class="landmark-label" x="30" y="238">Adobe Lodge</text>
-
           <circle class="landmark-dot" cx="160" cy="252" r="3.4"></circle>
           <text class="landmark-label" x="130" y="270" text-anchor="middle">Mission Church</text>
-
           <circle class="landmark-dot" cx="332" cy="302" r="3"></circle>
           <text class="landmark-label" x="338" y="305">Locatelli Activity Ctr</text>
-
           <circle class="landmark-dot" cx="150" cy="337" r="3"></circle>
           <text class="landmark-label" x="105" y="335" text-anchor="middle">Benson Center</text>
-
           <circle class="landmark-dot" cx="192" cy="347" r="3"></circle>
           <text class="landmark-label" x="198" y="350">Learning Commons &amp; Library</text>
-
           <circle class="landmark-dot" cx="237" cy="357" r="3"></circle>
           <text class="landmark-label" x="243" y="373">Malley Fitness &amp; Rec</text>
-
           <circle class="landmark-dot" cx="302" cy="347" r="3"></circle>
           <text class="landmark-label" x="308" y="350">Leavey Center</text>
-
           <circle class="landmark-dot" cx="55" cy="378" r="3"></circle>
           <text class="landmark-label" x="30" y="395">McLaughlin / Dunne / Swig</text>
-
           <circle class="landmark-dot" cx="140" cy="402" r="3"></circle>
           <text class="landmark-label" x="105" y="417" text-anchor="middle">Graham / Campisi</text>
-
           <circle class="landmark-dot" cx="150" cy="472" r="3"></circle>
           <text class="landmark-label" x="90" y="470" text-anchor="middle">Sobrato Hall / Casa Italiana</text>
-
           <circle class="landmark-dot" cx="260" cy="472" r="3"></circle>
           <text class="landmark-label" x="266" y="475">Bellomy Field</text>
-
-          <g id="pinLayer"></g>
         </svg>
+        <div class="pin-overlay" id="pinOverlay"></div>
       </div>
-      <p class="map-note">Schematic layout, not to scale — positions are approximate.</p>
+      <p class="map-note">Positions are approximate.</p>
       <div class="field-inline">
         <label for="landmarkSelect">Or choose a building</label>
         <select id="landmarkSelect">
@@ -203,19 +186,15 @@
   <div class="modal">
     <h2>Report a sighting</h2>
     <p class="sub">Add a map location, a building, and/or a short description — at least one of the three.</p>
-
     <div class="field">
       <label for="descInput">Description <span class="hint">(optional)</span></label>
       <textarea id="descInput" placeholder="What you saw, what it was doing, direction of travel..."></textarea>
     </div>
-
     <div class="field">
       <label for="locInput">Nearest building or landmark <span class="hint">(optional)</span></label>
       <input type="text" id="locInput" placeholder="e.g. behind Swig, near the loading dock">
     </div>
-
     <div id="formError" class="error-text" style="display:none;"></div>
-
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelReport">Cancel</button>
       <button class="report-btn" id="submitReport">Post report</button>
@@ -278,13 +257,23 @@
 
   const feedList = document.getElementById('feedList');
   const feedSub = document.getElementById('feedSub');
-  const pinLayer = document.getElementById('pinLayer');
+  const pinOverlay = document.getElementById('pinOverlay');
+  const mapWrap = document.getElementById('mapWrap');
+  const campusPhoto = document.getElementById('campusPhoto');
+  const campusSvg = document.getElementById('campusSvg');
   const banner = document.getElementById('storageBanner');
   const modalBackdrop = document.getElementById('modalBackdrop');
   const descInput = document.getElementById('descInput');
   const locInput = document.getElementById('locInput');
   const formError = document.getElementById('formError');
   const landmarkSelect = document.getElementById('landmarkSelect');
+
+  // If map.png isn't present (e.g. this page opened without it alongside),
+  // fall back to the drawn schematic instead of a broken image icon.
+  campusPhoto.addEventListener('error', () => {
+    campusPhoto.style.display = 'none';
+    campusSvg.style.display = 'block';
+  });
 
   LANDMARKS.forEach((lm, i) => {
     const opt = document.createElement('option');
@@ -322,6 +311,15 @@
   }
   function isLive(r) { return (Date.now() - r.createdAt) < FIVE_HOURS; }
 
+  function makePinEl(xFrac, yFrac, color, draft) {
+    const d = document.createElement('div');
+    d.className = 'pin-dot' + (draft ? ' draft' : '');
+    d.style.left = (xFrac * 100) + '%';
+    d.style.top = (yFrac * 100) + '%';
+    d.style.background = color;
+    return d;
+  }
+
   function render() {
     const live = reports.filter(isLive).sort((a, b) => b.createdAt - a.createdAt);
 
@@ -348,19 +346,13 @@
     }
     feedSub.textContent = `Newest first · ${live.length} active`;
 
-    pinLayer.innerHTML = '';
+    pinOverlay.innerHTML = '';
     for (const r of live) {
       if (!r.pin) continue;
-      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      c.setAttribute('cx', r.pin.x * MAP_W); c.setAttribute('cy', r.pin.y * MAP_H); c.setAttribute('r', 6);
-      c.setAttribute('fill', freshnessColor(r.createdAt)); c.setAttribute('class', 'pin');
-      pinLayer.appendChild(c);
+      pinOverlay.appendChild(makePinEl(r.pin.x, r.pin.y, freshnessColor(r.createdAt), false));
     }
     if (draftLoc) {
-      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      c.setAttribute('cx', draftLoc.x * MAP_W); c.setAttribute('cy', draftLoc.y * MAP_H); c.setAttribute('r', 7);
-      c.setAttribute('fill', 'var(--accent)'); c.setAttribute('class', 'pin draft');
-      pinLayer.appendChild(c);
+      pinOverlay.appendChild(makePinEl(draftLoc.x, draftLoc.y, 'var(--accent)', true));
     }
   }
 
@@ -380,12 +372,9 @@
       render();
     } catch (e) {}
   }
-
   async function detectApi() {
-    try {
-      const res = await fetch('/api/reports', { method: 'GET' });
-      return res.ok;
-    } catch (e) { return false; }
+    try { const res = await fetch('/api/reports', { method: 'GET' }); return res.ok; }
+    catch (e) { return false; }
   }
 
   async function submitReport() {
@@ -398,12 +387,7 @@
     }
     formError.style.display = 'none';
 
-    const report = {
-      description: description || null,
-      location: location || null,
-      pin: draftLoc,
-      createdAt: Date.now()
-    };
+    const report = { description: description || null, location: location || null, pin: draftLoc, createdAt: Date.now() };
 
     if (mode === 'db') {
       const id = 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
@@ -411,11 +395,7 @@
       catch (e) { formError.style.display = 'block'; formError.textContent = 'Could not post — try again.'; return; }
     } else if (mode === 'api') {
       try {
-        const res = await fetch('/api/reports', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(report)
-        });
+        const res = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report) });
         if (!res.ok) throw new Error('bad');
         await refreshFromApi();
       } catch (e) { formError.style.display = 'block'; formError.textContent = 'Could not post — try again.'; return; }
@@ -447,12 +427,11 @@
   document.getElementById('submitReport').addEventListener('click', submitReport);
   modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
 
-  document.getElementById('campusSvg').addEventListener('click', (evt) => {
-    const svg = evt.currentTarget;
-    const pt = svg.createSVGPoint();
-    pt.x = evt.clientX; pt.y = evt.clientY;
-    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
-    draftLoc = { x: Math.min(1, Math.max(0, loc.x / MAP_W)), y: Math.min(1, Math.max(0, loc.y / MAP_H)) };
+  mapWrap.addEventListener('click', (evt) => {
+    const rect = mapWrap.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (evt.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (evt.clientY - rect.top) / rect.height));
+    draftLoc = { x, y };
     landmarkSelect.value = '';
     render();
   });
