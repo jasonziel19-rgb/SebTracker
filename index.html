@@ -1,421 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Perimeter Watch — SCU</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #F1F4EF; --surface: #FFFFFF; --surface-2: #E9ECE5;
-    --ink: #16202B; --ink-muted: #57636F; --line: #D6DBD1;
-    --accent: #B9861F; --accent-ink: #3A2C08;
-    --zone-1: #D9E2E6; --zone-2: #E6DEE2; --zone-3: #E4DEC7; --zone-4: #DCE6D6; --zone-5: #E3E0D8;
-    box-sizing: border-box;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  :root:not([data-theme="light"]) {
-    @media (prefers-color-scheme: dark) {
-      --bg: #12171B; --surface: #1A2129; --surface-2: #212A32;
-      --ink: #E9EDEE; --ink-muted: #9AA7AC; --line: #2C363E;
-      --accent: #D6A23A; --accent-ink: #17110A;
-      --zone-1: #212E33; --zone-2: #2E2530; --zone-3: #3A3524; --zone-4: #223327; --zone-5: #2A2A24;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #12171B; --surface: #1A2129; --surface-2: #212A32;
-    --ink: #E9EDEE; --ink-muted: #9AA7AC; --line: #2C363E;
-    --accent: #D6A23A; --accent-ink: #17110A;
-    --zone-1: #212E33; --zone-2: #2E2530; --zone-3: #3A3524; --zone-4: #223327; --zone-5: #2A2A24;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; }
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  h1, h2, h3, .display { font-family: 'Fraunces', Georgia, serif; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 20px 64px; }
-  header.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 10px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
-  header.top .title { max-width: 60ch; }
-  header.top h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
-  header.top .kicker { color: var(--accent); font-size: 13px; font-weight: 600; margin: 0 0 4px; }
-  header.top p { margin: 0; color: var(--ink-muted); font-size: 15px; max-width: 46ch; }
-  button.report-btn { flex-shrink: 0; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; padding: 12px 18px; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 0 rgba(0,0,0,0.08); }
-  button.report-btn:hover { filter: brightness(1.05); }
-  button.report-btn:active { transform: translateY(1px); }
-  button.report-btn:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .banner { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; color: var(--ink-muted); margin-bottom: 20px; }
-  .layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; align-items: start; }
-  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
-  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
-  .panel h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
-  .panel .sub { color: var(--ink-muted); font-size: 13px; margin: 0 0 14px; }
+const express = require('express');
+const path = require('path');
+const crypto = require('crypto');
 
-  .map-wrap { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); cursor: crosshair; touch-action: manipulation; }
-  .map-wrap img#campusPhoto { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
+const app = express();
+app.use(express.json());
 
-  .pin-overlay { position: absolute; inset: 0; pointer-events: none; }
-  .pin-dot { position: absolute; width: 13px; height: 13px; margin-left: -6.5px; margin-top: -6.5px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-  .pin-dot.draft { border-color: var(--ink); width: 16px; height: 16px; margin-left: -8px; margin-top: -8px; }
+// index.html lives right next to this file (repo root), not in a
+// separate "public" folder — so we serve it directly from __dirname.
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-  .map-note { font-size: 11.5px; color: var(--ink-muted); margin-top: 8px; }
-  .field-inline { margin-top: 12px; }
-  .field-inline label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 5px; }
-  select { width: 100%; font-family: inherit; font-size: 14px; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-  .feed-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; }
-  .feed-item { display: flex; gap: 10px; padding: 10px 10px 10px 4px; border-bottom: 1px solid var(--line); }
-  .feed-item:last-child { border-bottom: none; }
-  .dot { flex-shrink: 0; width: 11px; height: 11px; border-radius: 50%; margin-top: 4px; }
-  .feed-body { min-width: 0; }
-  .feed-top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .feed-time { color: var(--ink-muted); font-size: 12.5px; }
-  .feed-desc { font-size: 14px; margin: 3px 0 0; line-height: 1.4; word-wrap: break-word; }
-  .feed-loc { font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
-  .feed-expiry { font-size: 11.5px; color: var(--ink-muted); margin-top: 4px; }
-  .empty { color: var(--ink-muted); font-size: 14px; padding: 18px 4px; text-align: center; }
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(10, 14, 18, 0.45); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
-  .modal-backdrop.open { display: flex; }
-  .modal { background: var(--surface); border-radius: 14px; max-width: 440px; width: 100%; padding: 22px; max-height: 90vh; overflow-y: auto; }
-  .modal h2 { margin: 0 0 4px; font-size: 19px; }
-  .modal .sub { color: var(--ink-muted); font-size: 13px; margin: 0 0 18px; }
-  .field { margin-bottom: 16px; }
-  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-  .field .hint { font-weight: 400; color: var(--ink-muted); font-size: 12px; }
-  textarea, input[type=text] { width: 100%; font-family: inherit; font-size: 14.5px; padding: 9px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); resize: vertical; }
-  textarea { min-height: 74px; }
-  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
-  .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 10px 16px; font-family: inherit; font-size: 14px; cursor: pointer; }
-  .error-text { color: #B3403A; font-size: 12.5px; margin-top: 6px; }
-  .foot-note { text-align: center; color: var(--ink-muted); font-size: 12px; margin-top: 26px; }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header class="top">
-    <div class="title">
-      <p class="kicker">Santa Clara University</p>
-      <h1>Perimeter Watch</h1>
-      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 5 hours.</p>
-    </div>
-    <button class="report-btn" id="openReport">Report a sighting</button>
-  </header>
+app.get('/healthz', (req, res) => res.json({ ok: true }));
 
-  <div id="storageBanner" class="banner" style="display:none;"></div>
+const FIVE_HOURS = 5 * 60 * 60 * 1000;
 
-  <div class="layout">
-    <section class="panel">
-      <h2>Where it's been seen</h2>
-      <p class="sub">Tap anywhere on the campus map to drop a pin, or pick a building below.</p>
-      <div class="map-wrap" id="mapWrap">
-        <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
-        <div class="pin-overlay" id="pinOverlay"></div>
-      </div>
-      <p class="map-note">Positions are approximate.</p>
-      <div class="field-inline">
-        <label for="landmarkSelect">Or choose a building</label>
-        <select id="landmarkSelect">
-          <option value="">Choose a building…</option>
-        </select>
-      </div>
-    </section>
+// In-memory store. Fine for this use case (reports are meant to expire
+// after 5 hours anyway) but note: a Render free-tier instance that spins
+// down on inactivity will lose this data on restart. See README if you
+// want it to survive restarts.
+let reports = [];
 
-    <section class="panel">
-      <h2>Recent reports</h2>
-      <p class="sub" id="feedSub">Newest first.</p>
-      <ul class="feed-list" id="feedList"></ul>
-    </section>
-  </div>
+function pruneExpired() {
+  const now = Date.now();
+  reports = reports.filter((r) => now - r.createdAt < FIVE_HOURS);
+}
 
-  <p class="foot-note">Reports are anonymous and remove themselves after 5 hours. For an immediate threat, contact Campus Safety or local police directly.</p>
-</div>
+app.get('/api/reports', (req, res) => {
+  pruneExpired();
+  res.json(reports);
+});
 
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal">
-    <h2>Report a sighting</h2>
-    <p class="sub">Add a map location, a building, and/or a short description — at least one of the three.</p>
-    <div class="field">
-      <label for="descInput">Description <span class="hint">(optional)</span></label>
-      <textarea id="descInput" placeholder="What you saw, what it was doing, direction of travel..."></textarea>
-    </div>
-    <div class="field">
-      <label for="locInput">Nearest building or landmark <span class="hint">(optional)</span></label>
-      <input type="text" id="locInput" placeholder="e.g. behind Swig, near the loading dock">
-    </div>
-    <div id="formError" class="error-text" style="display:none;"></div>
-    <div class="modal-actions">
-      <button class="btn-secondary" id="cancelReport">Cancel</button>
-      <button class="report-btn" id="submitReport">Post report</button>
-    </div>
-  </div>
-</div>
+app.post('/api/reports', (req, res) => {
+  pruneExpired();
+  const body = req.body || {};
 
-<script>
-(function () {
-  const FIVE_HOURS = 5 * 60 * 60 * 1000;
-  const LOCAL_KEY = 'perimeterWatchReportsSCU';
-  const MAP_W = 420, MAP_H = 560;
-  const LANDMARKS = [
-    { name: 'St. Clare Residence Hall', x: 140, y: 40 },
-    { name: 'Jesuit Residence Community', x: 90, y: 78 },
-    { name: 'Performing Arts Annex', x: 235, y: 52 },
-    { name: 'Bronco Venture Accelerator', x: 345, y: 68 },
-    { name: 'Music & Dance', x: 95, y: 122 },
-    { name: 'Alumni Science', x: 150, y: 116 },
-    { name: 'Daly Science', x: 195, y: 122 },
-    { name: 'Mayer Theatre', x: 112, y: 152 },
-    { name: "O'Connor Hall", x: 145, y: 162 },
-    { name: 'Lucas Hall', x: 182, y: 155 },
-    { name: 'Vari Hall', x: 225, y: 150 },
-    { name: 'Main Entrance / Palm Drive', x: 300, y: 140 },
-    { name: 'Santa Clara Transit Center', x: 365, y: 128 },
-    { name: 'Nobili Hall', x: 72, y: 202 },
-    { name: 'De Saisset Museum', x: 122, y: 196 },
-    { name: 'Abby Sobrato Mall', x: 180, y: 196 },
-    { name: 'Schott Admission & Enrollment', x: 238, y: 202 },
-    { name: 'Sobrato Campus for Discovery & Innovation', x: 302, y: 212 },
-    { name: 'Stevens Stadium / Buck Shaw Field', x: 362, y: 232 },
-    { name: 'Adobe Lodge / Mission Gardens', x: 82, y: 242 },
-    { name: 'Mission Church', x: 160, y: 252 },
-    { name: "Walsh Admin / Heafey / Kenna Hall", x: 212, y: 257 },
-    { name: 'Ricard Observatory', x: 262, y: 247 },
-    { name: 'Locatelli Activity Center', x: 332, y: 302 },
-    { name: 'Benson Memorial Center', x: 150, y: 337 },
-    { name: 'Bronco Bookstore', x: 112, y: 357 },
-    { name: 'Learning Commons & Library', x: 192, y: 347 },
-    { name: 'Malley Fitness & Recreation Center', x: 237, y: 357 },
-    { name: 'Leavey Center', x: 302, y: 347 },
-    { name: 'Schott Athletic Excellence Center', x: 342, y: 357 },
-    { name: 'McLaughlin / Dunne / Swig', x: 55, y: 378 },
-    { name: 'Graham / Campisi', x: 140, y: 402 },
-    { name: 'Cowell Center', x: 210, y: 402 },
-    { name: 'Degheri Tennis Center', x: 300, y: 402 },
-    { name: 'Softball Park', x: 372, y: 417 },
-    { name: 'Sobrato Hall / Casa Italiana', x: 150, y: 472 },
-    { name: 'Bellomy Field', x: 260, y: 472 },
-    { name: 'Stephen Schott Stadium', x: 350, y: 482 },
-    { name: 'Finn / University Operations', x: 120, y: 512 },
-    { name: 'Bellarmine / Loyola Hall', x: 210, y: 522 }
-  ];
+  const description = typeof body.description === 'string' ? body.description.trim().slice(0, 400) : '';
+  const location = typeof body.location === 'string' ? body.location.trim().slice(0, 140) : '';
+  const pin = body.pin && typeof body.pin.x === 'number' && typeof body.pin.y === 'number'
+    ? { x: Math.min(1, Math.max(0, body.pin.x)), y: Math.min(1, Math.max(0, body.pin.y)) }
+    : null;
 
-  let db = null;
-  let mode = 'local';
-  let draftLoc = null;
-  let reports = [];
-
-  const feedList = document.getElementById('feedList');
-  const feedSub = document.getElementById('feedSub');
-  const pinOverlay = document.getElementById('pinOverlay');
-  const mapWrap = document.getElementById('mapWrap');
-  const campusPhoto = document.getElementById('campusPhoto');
-  const banner = document.getElementById('storageBanner');
-  const modalBackdrop = document.getElementById('modalBackdrop');
-  const descInput = document.getElementById('descInput');
-  const locInput = document.getElementById('locInput');
-  const formError = document.getElementById('formError');
-  const landmarkSelect = document.getElementById('landmarkSelect');
-
-
-  LANDMARKS.forEach((lm, i) => {
-    const opt = document.createElement('option');
-    opt.value = String(i);
-    opt.textContent = lm.name;
-    landmarkSelect.appendChild(opt);
-  });
-  landmarkSelect.addEventListener('change', () => {
-    const idx = landmarkSelect.value;
-    if (idx === '') return;
-    const lm = LANDMARKS[Number(idx)];
-    draftLoc = { x: lm.x / MAP_W, y: lm.y / MAP_H };
-    if (!locInput.value) locInput.value = lm.name;
-    render();
-    if (!modalBackdrop.classList.contains('open')) openModal(true);
-  });
-
-  function freshnessColor(createdAt) {
-    const t = Math.min(1, Math.max(0, (Date.now() - createdAt) / FIVE_HOURS));
-    return `hsl(${142 - 136 * t}, 62%, 45%)`;
-  }
-  function relTime(ms) {
-    const diff = Date.now() - ms;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    return `${hrs}h ${mins % 60}m ago`;
-  }
-  function expiryText(createdAt) {
-    const remaining = createdAt + FIVE_HOURS - Date.now();
-    if (remaining <= 0) return 'clearing now';
-    const mins = Math.round(remaining / 60000);
-    return `clears in ${Math.floor(mins / 60)}h ${mins % 60}m`;
-  }
-  function isLive(r) { return (Date.now() - r.createdAt) < FIVE_HOURS; }
-
-  function makePinEl(xFrac, yFrac, color, draft) {
-    const d = document.createElement('div');
-    d.className = 'pin-dot' + (draft ? ' draft' : '');
-    d.style.left = (xFrac * 100) + '%';
-    d.style.top = (yFrac * 100) + '%';
-    d.style.background = color;
-    return d;
+  if (!description && !location && !pin) {
+    return res.status(400).json({ error: 'Add a location, a landmark, or a short description.' });
   }
 
-  function render() {
-    const live = reports.filter(isLive).sort((a, b) => b.createdAt - a.createdAt);
+  const report = {
+    id: crypto.randomUUID(),
+    description: description || null,
+    location: location || null,
+    pin,
+    createdAt: Date.now()
+  };
 
-    feedList.innerHTML = '';
-    if (live.length === 0) {
-      feedList.innerHTML = '<li class="empty">No active reports. The board clears itself after 5 hours.</li>';
-    } else {
-      for (const r of live) {
-        const li = document.createElement('li');
-        li.className = 'feed-item';
-        li.innerHTML = `
-          <span class="dot" style="background:${freshnessColor(r.createdAt)}"></span>
-          <div class="feed-body">
-            <div class="feed-top"><span class="feed-time">${relTime(r.createdAt)}</span></div>
-            ${r.description ? '<p class="feed-desc"></p>' : ''}
-            ${r.location ? '<div class="feed-loc"></div>' : ''}
-            <div class="feed-expiry">${expiryText(r.createdAt)}</div>
-          </div>
-        `;
-        if (r.description) li.querySelector('.feed-desc').textContent = r.description;
-        if (r.location) li.querySelector('.feed-loc').textContent = '📍 ' + r.location;
-        feedList.appendChild(li);
-      }
-    }
-    feedSub.textContent = `Newest first · ${live.length} active`;
+  reports.push(report);
+  res.status(201).json(report);
+});
 
-    pinOverlay.innerHTML = '';
-    for (const r of live) {
-      if (!r.pin) continue;
-      pinOverlay.appendChild(makePinEl(r.pin.x, r.pin.y, freshnessColor(r.createdAt), false));
-    }
-    if (draftLoc) {
-      pinOverlay.appendChild(makePinEl(draftLoc.x, draftLoc.y, 'var(--accent)', true));
-    }
-  }
+// Background sweep so expired reports don't linger in memory between requests.
+setInterval(pruneExpired, 5 * 60 * 1000);
 
-  function pruneExpired() { reports = reports.filter(isLive); }
-  function saveLocal() { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(reports)); } catch (e) {} }
-  function loadLocal() {
-    try { const raw = localStorage.getItem(LOCAL_KEY); reports = raw ? JSON.parse(raw) : []; }
-    catch (e) { reports = []; }
-  }
-
-  async function refreshFromApi() {
-    try {
-      const res = await fetch('/api/reports');
-      if (!res.ok) return;
-      reports = await res.json();
-      pruneExpired();
-      render();
-    } catch (e) {}
-  }
-  async function detectApi() {
-    try { const res = await fetch('/api/reports', { method: 'GET' }); return res.ok; }
-    catch (e) { return false; }
-  }
-
-  async function submitReport() {
-    const description = descInput.value.trim().slice(0, 400);
-    const location = locInput.value.trim().slice(0, 140);
-    if (!description && !location && !draftLoc) {
-      formError.style.display = 'block';
-      formError.textContent = 'Add a map location, a building, or a short description.';
-      return;
-    }
-    formError.style.display = 'none';
-
-    const report = { description: description || null, location: location || null, pin: draftLoc, createdAt: Date.now() };
-
-    if (mode === 'db') {
-      const id = 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      try { await db.doc('reports/' + id).set(report); }
-      catch (e) { formError.style.display = 'block'; formError.textContent = 'Could not post — try again.'; return; }
-    } else if (mode === 'api') {
-      try {
-        const res = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report) });
-        if (!res.ok) throw new Error('bad');
-        await refreshFromApi();
-      } catch (e) { formError.style.display = 'block'; formError.textContent = 'Could not post — try again.'; return; }
-    } else {
-      report.id = 'local_' + Date.now();
-      reports.push(report);
-      saveLocal();
-      render();
-    }
-    closeModal();
-  }
-
-  function openModal(keepDraft) {
-    descInput.value = '';
-    if (!keepDraft) { locInput.value = ''; draftLoc = null; }
-    formError.style.display = 'none';
-    modalBackdrop.classList.add('open');
-    render();
-  }
-  function closeModal() {
-    modalBackdrop.classList.remove('open');
-    draftLoc = null;
-    landmarkSelect.value = '';
-    render();
-  }
-
-  document.getElementById('openReport').addEventListener('click', () => openModal(false));
-  document.getElementById('cancelReport').addEventListener('click', closeModal);
-  document.getElementById('submitReport').addEventListener('click', submitReport);
-  modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
-
-  mapWrap.addEventListener('click', (evt) => {
-    const rect = mapWrap.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (evt.clientX - rect.left) / rect.width));
-    const y = Math.min(1, Math.max(0, (evt.clientY - rect.top) / rect.height));
-    draftLoc = { x, y };
-    landmarkSelect.value = '';
-    render();
-  });
-
-  function startClock() { setInterval(() => { pruneExpired(); render(); }, 30000); }
-
-  async function init() {
-    try {
-      db = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('db') : null;
-    } catch (e) { db = null; }
-
-    if (db) {
-      try {
-        db.collection('reports').orderBy('createdAt', 'desc').limit(150).onSnapshot((docs) => {
-          reports = (docs || []).map(d => (d.data ? d.data() : d)).filter(Boolean);
-          pruneExpired();
-          render();
-        });
-        mode = 'db';
-      } catch (e) { db = null; }
-    }
-
-    if (!db) {
-      const hasApi = await detectApi();
-      if (hasApi) {
-        mode = 'api';
-        await refreshFromApi();
-        setInterval(refreshFromApi, 10000);
-      } else {
-        mode = 'local';
-        banner.style.display = 'block';
-        banner.textContent = 'Shared syncing isn\u2019t available in this view, so reports are only saved on this device.';
-        loadLocal();
-      }
-    }
-
-    pruneExpired();
-    render();
-    startClock();
-  }
-
-  init();
-})();
-</script>
-</body>
-</html>
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Perimeter Watch listening on port ${PORT}`);
+});
