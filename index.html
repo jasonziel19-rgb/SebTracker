@@ -95,18 +95,18 @@
   <header class="top">
     <div class="title">
       <p class="kicker">Santa Clara University</p>
-      <h1>Perimeter Watch</h1>
-      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 5 hours.</p>
+      <h1>Seb Tracker</h1>
+      <p>Click the map or report a sighting.</p>
     </div>
-    <button class="report-btn" id="openReport">Report a sighting</button>
+    <button class="report-btn" id="openReport">Add a description</button>
   </header>
 
   <div id="storageBanner" class="banner" style="display:none;"></div>
 
   <div class="layout">
     <section class="panel">
-      <h2>Where it's been seen</h2>
-      <p class="sub">Tap anywhere on the campus map to drop a pin, or pick a building below.</p>
+      <h2>Where has Seb been seen?</h2>
+      <p class="sub">Tap anywhere to drop a pin or select building</p>
       <div class="map-wrap" id="mapWrap">
         <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
         <div class="pin-overlay" id="pinOverlay"></div>
@@ -132,8 +132,8 @@
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
-    <h2>Report a sighting</h2>
-    <p class="sub">Add a map location, a building, and/or a short description — at least one of the three.</p>
+    <h2>Add a description</h2>
+    <p class="sub">This posts on its own, separate from any pin on the map — add a short description and/or a location.</p>
     <div class="field">
       <label for="descInput">Description <span class="hint">(optional)</span></label>
       <textarea id="descInput" placeholder="What you saw, what it was doing, direction of travel..."></textarea>
@@ -156,12 +156,8 @@
   const LOCAL_KEY = 'perimeterWatchReportsSCU';
   const MAP_W = 420, MAP_H = 560;
   const LANDMARKS = [
-    { name: 'St. Clare Residence Hall', x: 140, y: 40 },
-    { name: 'Jesuit Residence Community', x: 90, y: 78 },
-    { name: 'Performing Arts Annex', x: 235, y: 52 },
+    { name: 'SWIG 107', x: 140, y: 40 },
     { name: 'Bronco Venture Accelerator', x: 345, y: 68 },
-    { name: 'Music & Dance', x: 95, y: 122 },
-    { name: 'Alumni Science', x: 150, y: 116 },
     { name: 'Daly Science', x: 195, y: 122 },
     { name: 'Mayer Theatre', x: 112, y: 152 },
     { name: "O'Connor Hall", x: 145, y: 162 },
@@ -200,7 +196,6 @@
 
   let db = null;
   let mode = 'local';
-  let draftLoc = null;
   let reports = [];
 
   const feedList = document.getElementById('feedList');
@@ -222,14 +217,12 @@
     opt.textContent = lm.name;
     landmarkSelect.appendChild(opt);
   });
-  landmarkSelect.addEventListener('change', () => {
+  landmarkSelect.addEventListener('change', async () => {
     const idx = landmarkSelect.value;
     if (idx === '') return;
     const lm = LANDMARKS[Number(idx)];
-    draftLoc = { x: lm.x / MAP_W, y: lm.y / MAP_H };
-    if (!locInput.value) locInput.value = lm.name;
-    render();
-    if (!modalBackdrop.classList.contains('open')) openModal(true);
+    await postReport({ pin: { x: lm.x / MAP_W, y: lm.y / MAP_H }, location: lm.name, description: null });
+    landmarkSelect.value = '';
   });
 
   function freshnessColor(createdAt) {
@@ -252,9 +245,9 @@
   }
   function isLive(r) { return (Date.now() - r.createdAt) < FIVE_HOURS; }
 
-  function makePinEl(xFrac, yFrac, color, draft) {
+  function makePinEl(xFrac, yFrac, color) {
     const d = document.createElement('div');
-    d.className = 'pin-dot' + (draft ? ' draft' : '');
+    d.className = 'pin-dot';
     d.style.left = (xFrac * 100) + '%';
     d.style.top = (yFrac * 100) + '%';
     d.style.background = color;
@@ -290,10 +283,7 @@
     pinOverlay.innerHTML = '';
     for (const r of live) {
       if (!r.pin) continue;
-      pinOverlay.appendChild(makePinEl(r.pin.x, r.pin.y, freshnessColor(r.createdAt), false));
-    }
-    if (draftLoc) {
-      pinOverlay.appendChild(makePinEl(draftLoc.x, draftLoc.y, 'var(--accent)', true));
+      pinOverlay.appendChild(makePinEl(r.pin.x, r.pin.y, freshnessColor(r.createdAt)));
     }
   }
 
@@ -318,63 +308,74 @@
     catch (e) { return false; }
   }
 
-  async function submitReport() {
-    const description = descInput.value.trim().slice(0, 400);
-    const location = locInput.value.trim().slice(0, 140);
-    if (!description && !location && !draftLoc) {
-      formError.style.display = 'block';
-      formError.textContent = 'Add a map location, a building, or a short description.';
-      return;
-    }
-    formError.style.display = 'none';
-
-    const report = { description: description || null, location: location || null, pin: draftLoc, createdAt: Date.now() };
+  // Shared submit path used by: a map click, picking a building, and the
+  // text-only "add details" modal. Returns true on success.
+  async function postReport(partial) {
+    const report = {
+      description: partial.description || null,
+      location: partial.location || null,
+      pin: partial.pin || null,
+      createdAt: Date.now()
+    };
 
     if (mode === 'db') {
       const id = 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      try { await db.doc('reports/' + id).set(report); }
-      catch (e) { formError.style.display = 'block'; formError.textContent = 'Could not post — try again.'; return; }
+      try { await db.doc('reports/' + id).set(report); return true; }
+      catch (e) { return false; }
     } else if (mode === 'api') {
       try {
         const res = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report) });
-        if (!res.ok) throw new Error('bad');
+        if (!res.ok) return false;
         await refreshFromApi();
-      } catch (e) { formError.style.display = 'block'; formError.textContent = 'Could not post — try again.'; return; }
+        return true;
+      } catch (e) { return false; }
     } else {
       report.id = 'local_' + Date.now();
       reports.push(report);
       saveLocal();
       render();
+      return true;
+    }
+  }
+
+  async function submitDetails() {
+    const description = descInput.value.trim().slice(0, 400);
+    const location = locInput.value.trim().slice(0, 140);
+    if (!description && !location) {
+      formError.style.display = 'block';
+      formError.textContent = 'Add a short description or a location.';
+      return;
+    }
+    formError.style.display = 'none';
+    const ok = await postReport({ description, location, pin: null });
+    if (!ok) {
+      formError.style.display = 'block';
+      formError.textContent = 'Could not post — try again.';
+      return;
     }
     closeModal();
   }
 
-  function openModal(keepDraft) {
+  function openModal() {
     descInput.value = '';
-    if (!keepDraft) { locInput.value = ''; draftLoc = null; }
+    locInput.value = '';
     formError.style.display = 'none';
     modalBackdrop.classList.add('open');
-    render();
   }
   function closeModal() {
     modalBackdrop.classList.remove('open');
-    draftLoc = null;
-    landmarkSelect.value = '';
-    render();
   }
 
-  document.getElementById('openReport').addEventListener('click', () => openModal(false));
+  document.getElementById('openReport').addEventListener('click', openModal);
   document.getElementById('cancelReport').addEventListener('click', closeModal);
-  document.getElementById('submitReport').addEventListener('click', submitReport);
+  document.getElementById('submitReport').addEventListener('click', submitDetails);
   modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
 
-  mapWrap.addEventListener('click', (evt) => {
+  mapWrap.addEventListener('click', async (evt) => {
     const rect = mapWrap.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (evt.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (evt.clientY - rect.top) / rect.height));
-    draftLoc = { x, y };
-    landmarkSelect.value = '';
-    render();
+    await postReport({ pin: { x, y }, description: null, location: null });
   });
 
   function startClock() { setInterval(() => { pruneExpired(); render(); }, 30000); }
