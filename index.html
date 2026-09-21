@@ -54,12 +54,6 @@
 
   .map-wrap { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); cursor: crosshair; touch-action: manipulation; }
   .map-wrap img#campusPhoto { width: 100%; height: auto; display: block; user-select: none; -webkit-user-drag: none; }
-  svg.campusmap { width: 100%; height: auto; display: none; }
-  .zone { stroke: var(--line); stroke-width: 1; }
-  .zone-label { fill: var(--ink-muted); font-size: 9px; font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: 0.03em; }
-  .landmark-dot { fill: var(--ink-muted); opacity: 0.6; }
-  .landmark-label { fill: var(--ink-muted); font-size: 7.3px; font-family: 'Inter', sans-serif; }
-  .path-line { stroke: var(--surface); stroke-width: 4; stroke-linecap: round; fill: none; opacity: 0.9; }
 
   .pin-overlay { position: absolute; inset: 0; pointer-events: none; }
   .pin-dot { position: absolute; width: 13px; height: 13px; margin-left: -6.5px; margin-top: -6.5px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -115,52 +109,6 @@
       <p class="sub">Tap anywhere on the campus map to drop a pin, or pick a building below.</p>
       <div class="map-wrap" id="mapWrap">
         <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
-        <svg class="campusmap" viewBox="0 0 420 560" id="campusSvg" aria-label="Schematic map of Santa Clara University campus">
-          <rect class="zone" x="8" y="8" width="404" height="544" rx="10" fill="var(--surface)"></rect>
-          <rect class="zone" x="20" y="20" width="380" height="76" rx="8" fill="var(--zone-1)"></rect>
-          <text class="zone-label" x="210" y="34" text-anchor="middle">NORTH CAMPUS</text>
-          <rect class="zone" x="20" y="102" width="380" height="76" rx="8" fill="var(--zone-2)"></rect>
-          <text class="zone-label" x="210" y="116" text-anchor="middle">ACADEMIC CORE &amp; ENTRANCE</text>
-          <rect class="zone" x="20" y="184" width="380" height="130" rx="8" fill="var(--zone-3)"></rect>
-          <text class="zone-label" x="210" y="198" text-anchor="middle">MISSION &amp; STUDENT LIFE</text>
-          <rect class="zone" x="20" y="320" width="380" height="120" rx="8" fill="var(--zone-4)"></rect>
-          <text class="zone-label" x="210" y="334" text-anchor="middle">RESIDENCE &amp; ATHLETICS</text>
-          <rect class="zone" x="20" y="446" width="380" height="90" rx="8" fill="var(--zone-5)"></rect>
-          <text class="zone-label" x="210" y="460" text-anchor="middle">SOUTH OPERATIONS</text>
-          <polyline class="path-line" points="300,140 180,196 160,252"></polyline>
-          <circle class="landmark-dot" cx="225" cy="150" r="3"></circle>
-          <text class="landmark-label" x="231" y="153">Vari Hall</text>
-          <circle class="landmark-dot" cx="300" cy="140" r="3"></circle>
-          <text class="landmark-label" x="245" y="132">Main Entrance / Palm Dr</text>
-          <circle class="landmark-dot" cx="180" cy="196" r="3"></circle>
-          <text class="landmark-label" x="186" y="199">Abby Sobrato Mall</text>
-          <circle class="landmark-dot" cx="302" cy="212" r="3"></circle>
-          <text class="landmark-label" x="308" y="215">Sobrato Discovery &amp; Innovation</text>
-          <circle class="landmark-dot" cx="362" cy="232" r="3"></circle>
-          <text class="landmark-label" x="313" y="248" text-anchor="middle">Stevens Stadium / Buck Shaw</text>
-          <circle class="landmark-dot" cx="82" cy="242" r="3"></circle>
-          <text class="landmark-label" x="30" y="238">Adobe Lodge</text>
-          <circle class="landmark-dot" cx="160" cy="252" r="3.4"></circle>
-          <text class="landmark-label" x="130" y="270" text-anchor="middle">Mission Church</text>
-          <circle class="landmark-dot" cx="332" cy="302" r="3"></circle>
-          <text class="landmark-label" x="338" y="305">Locatelli Activity Ctr</text>
-          <circle class="landmark-dot" cx="150" cy="337" r="3"></circle>
-          <text class="landmark-label" x="105" y="335" text-anchor="middle">Benson Center</text>
-          <circle class="landmark-dot" cx="192" cy="347" r="3"></circle>
-          <text class="landmark-label" x="198" y="350">Learning Commons &amp; Library</text>
-          <circle class="landmark-dot" cx="237" cy="357" r="3"></circle>
-          <text class="landmark-label" x="243" y="373">Malley Fitness &amp; Rec</text>
-          <circle class="landmark-dot" cx="302" cy="347" r="3"></circle>
-          <text class="landmark-label" x="308" y="350">Leavey Center</text>
-          <circle class="landmark-dot" cx="55" cy="378" r="3"></circle>
-          <text class="landmark-label" x="30" y="395">McLaughlin / Dunne / Swig</text>
-          <circle class="landmark-dot" cx="140" cy="402" r="3"></circle>
-          <text class="landmark-label" x="105" y="417" text-anchor="middle">Graham / Campisi</text>
-          <circle class="landmark-dot" cx="150" cy="472" r="3"></circle>
-          <text class="landmark-label" x="90" y="470" text-anchor="middle">Sobrato Hall / Casa Italiana</text>
-          <circle class="landmark-dot" cx="260" cy="472" r="3"></circle>
-          <text class="landmark-label" x="266" y="475">Bellomy Field</text>
-        </svg>
         <div class="pin-overlay" id="pinOverlay"></div>
       </div>
       <p class="map-note">Positions are approximate.</p>
@@ -260,7 +208,6 @@
   const pinOverlay = document.getElementById('pinOverlay');
   const mapWrap = document.getElementById('mapWrap');
   const campusPhoto = document.getElementById('campusPhoto');
-  const campusSvg = document.getElementById('campusSvg');
   const banner = document.getElementById('storageBanner');
   const modalBackdrop = document.getElementById('modalBackdrop');
   const descInput = document.getElementById('descInput');
@@ -268,12 +215,6 @@
   const formError = document.getElementById('formError');
   const landmarkSelect = document.getElementById('landmarkSelect');
 
-  // If map.png isn't present (e.g. this page opened without it alongside),
-  // fall back to the drawn schematic instead of a broken image icon.
-  campusPhoto.addEventListener('error', () => {
-    campusPhoto.style.display = 'none';
-    campusSvg.style.display = 'block';
-  });
 
   LANDMARKS.forEach((lm, i) => {
     const opt = document.createElement('option');
