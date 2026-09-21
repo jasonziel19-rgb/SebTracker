@@ -5,15 +5,10 @@ const crypto = require('crypto');
 const app = express();
 app.use(express.json());
 
-const PUBLIC_DIR = path.join(__dirname, 'public');
-app.use(express.static(PUBLIC_DIR));
-
-// Explicit fallback for '/' in case static serving doesn't pick up index.html.
-// If this 500s with ENOENT, public/index.html isn't present in the deploy —
-// check that it's committed to your repo and that Render's Root Directory
-// points at this folder.
+// index.html lives right next to this file (repo root), not in a
+// separate "public" folder — so we serve it directly from __dirname.
 app.get('/', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
