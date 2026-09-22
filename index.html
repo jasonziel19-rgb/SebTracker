@@ -92,25 +92,26 @@
   <header class="top">
     <div class="title">
       <p class="kicker">Santa Clara University</p>
-      <h1>Perimeter Watch</h1>
-      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 2 hours.</p>
+      <h1>Sebastian Tracker</h1>
+      <p>A shared board for reporting Sebastian seen on or near campus. Only make informed reports please!</p>
     </div>
-    <button class="report-btn" id="openReport">Add a report</button>
+    <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+      <button class="report-btn" id="openReport">Add a report</button>
+      <button class="report-btn" id="openFratReport" type="button">At a frat</button>
+    </div>
   </header>
-
-  <p style="margin: -14px 0 20px;"><button class="btn-secondary" id="openFratReport" type="button">At a frat</button></p>
 
   <div id="storageBanner" class="banner" style="display:none;"></div>
 
   <div class="layout">
     <section class="panel">
-      <h2>Where it's been seen</h2>
+      <h2>Where has he been seen?</h2>
       <p class="sub">Tap anywhere on the campus map to post a sighting there right away.</p>
       <div class="map-wrap" id="mapWrap">
         <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
         <div class="pin-overlay" id="pinOverlay"></div>
       </div>
-      <p class="map-note">Positions are approximate.</p>
+      <p class="map-note">Positions are approximate. Dot colors fade to red over time. Reports removed after 2 hours.</p>
     </section>
 
     <section class="panel">
