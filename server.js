@@ -62,6 +62,16 @@ app.post('/api/reports', (req, res) => {
   res.status(201).json(report);
 });
 
+// Lets a client remove its own previous pin before placing a new one.
+// Anyone who knows an id can delete it (there's no auth in this app),
+// but ids aren't guessable and aren't shown anywhere, so this is fine
+// for "swap my own pin" — not a real permissions system.
+app.delete('/api/reports/:id', (req, res) => {
+  const before = reports.length;
+  reports = reports.filter((r) => r.id !== req.params.id);
+  res.json({ deleted: reports.length !== before });
+});
+
 // Background sweep so expired reports don't linger in memory between requests.
 setInterval(pruneExpired, 5 * 60 * 1000);
 
