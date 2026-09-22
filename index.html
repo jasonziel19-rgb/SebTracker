@@ -60,9 +60,6 @@
   .pin-dot.draft { border-color: var(--ink); width: 16px; height: 16px; margin-left: -8px; margin-top: -8px; }
 
   .map-note { font-size: 11.5px; color: var(--ink-muted); margin-top: 8px; }
-  .field-inline { margin-top: 12px; }
-  .field-inline label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 5px; }
-  select { width: 100%; font-family: inherit; font-size: 14px; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
   .feed-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; }
   .feed-item { display: flex; gap: 10px; padding: 10px 10px 10px 4px; border-bottom: 1px solid var(--line); }
   .feed-item:last-child { border-bottom: none; }
@@ -96,9 +93,9 @@
     <div class="title">
       <p class="kicker">Santa Clara University</p>
       <h1>Perimeter Watch</h1>
-      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 5 hours.</p>
+      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 2 hours.</p>
     </div>
-    <button class="report-btn" id="openReport">Add a description</button>
+    <button class="report-btn" id="openReport">Add a report</button>
   </header>
 
   <div id="storageBanner" class="banner" style="display:none;"></div>
@@ -106,18 +103,12 @@
   <div class="layout">
     <section class="panel">
       <h2>Where it's been seen</h2>
-      <p class="sub">Tap anywhere on the campus map to post a sighting there right away, or pick a building below.</p>
+      <p class="sub">Tap anywhere on the campus map to post a sighting there right away.</p>
       <div class="map-wrap" id="mapWrap">
         <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
         <div class="pin-overlay" id="pinOverlay"></div>
       </div>
       <p class="map-note">Positions are approximate.</p>
-      <div class="field-inline">
-        <label for="landmarkSelect">Or choose a building</label>
-        <select id="landmarkSelect">
-          <option value="">Choose a building…</option>
-        </select>
-      </div>
     </section>
 
     <section class="panel">
@@ -127,12 +118,12 @@
     </section>
   </div>
 
-  <p class="foot-note">Reports are anonymous and remove themselves after 5 hours. For an immediate threat, contact Campus Safety or local police directly.</p>
+  <p class="foot-note">Reports are anonymous and remove themselves after 2 hours. For an immediate threat, contact Campus Safety or local police directly.</p>
 </div>
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
-    <h2>Add a description</h2>
+    <h2>Add a report</h2>
     <p class="sub">This posts on its own, separate from any pin on the map — add a short description and/or a location.</p>
     <div class="field">
       <label for="descInput">Description <span class="hint">(optional)</span></label>
@@ -152,52 +143,9 @@
 
 <script>
 (function () {
-  const FIVE_HOURS = 5 * 60 * 60 * 1000;
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
   const LOCAL_KEY = 'perimeterWatchReportsSCU';
   const MY_PIN_KEY = 'perimeterWatchMyPinId';
-  const MAP_W = 420, MAP_H = 560;
-  const LANDMARKS = [
-    { name: 'St. Clare Residence Hall', x: 70, y: 337 },
-    { name: 'Jesuit Residence Community', x: 90, y: 78 },
-    { name: 'Performing Arts Annex', x: 235, y: 52 },
-    { name: 'Bronco Venture Accelerator', x: 345, y: 68 },
-    { name: 'Music & Dance', x: 95, y: 122 },
-    { name: 'Alumni Science', x: 150, y: 116 },
-    { name: 'Daly Science', x: 195, y: 122 },
-    { name: 'Mayer Theatre', x: 112, y: 152 },
-    { name: "O'Connor Hall", x: 145, y: 162 },
-    { name: 'Lucas Hall', x: 182, y: 155 },
-    { name: 'Vari Hall', x: 225, y: 150 },
-    { name: 'Main Entrance / Palm Drive', x: 300, y: 140 },
-    { name: 'Santa Clara Transit Center', x: 365, y: 128 },
-    { name: 'Nobili Hall', x: 72, y: 202 },
-    { name: 'De Saisset Museum', x: 122, y: 196 },
-    { name: 'Abby Sobrato Mall', x: 180, y: 196 },
-    { name: 'Schott Admission & Enrollment', x: 238, y: 202 },
-    { name: 'Sobrato Campus for Discovery & Innovation', x: 302, y: 212 },
-    { name: 'Stevens Stadium / Buck Shaw Field', x: 362, y: 232 },
-    { name: 'Adobe Lodge / Mission Gardens', x: 82, y: 242 },
-    { name: 'Mission Church', x: 160, y: 252 },
-    { name: "Walsh Admin / Heafey / Kenna Hall", x: 212, y: 257 },
-    { name: 'Ricard Observatory', x: 262, y: 247 },
-    { name: 'Locatelli Activity Center', x: 332, y: 302 },
-    { name: 'Benson Memorial Center', x: 100, y: 337 },
-    { name: 'Bronco Bookstore', x: 112, y: 357 },
-    { name: 'Learning Commons & Library', x: 192, y: 347 },
-    { name: 'Malley Fitness & Recreation Center', x: 237, y: 357 },
-    { name: 'Leavey Center', x: 302, y: 347 },
-    { name: 'Schott Athletic Excellence Center', x: 342, y: 357 },
-    { name: 'McLaughlin / Dunne / Swig', x: 55, y: 378 },
-    { name: 'Graham / Campisi', x: 140, y: 402 },
-    { name: 'Cowell Center', x: 210, y: 402 },
-    { name: 'Degheri Tennis Center', x: 300, y: 402 },
-    { name: 'Softball Park', x: 372, y: 417 },
-    { name: 'Sobrato Hall / Casa Italiana', x: 150, y: 472 },
-    { name: 'Bellomy Field', x: 260, y: 472 },
-    { name: 'Stephen Schott Stadium', x: 350, y: 482 },
-    { name: 'Finn / University Operations', x: 120, y: 512 },
-    { name: 'Bellarmine / Loyola Hall', x: 210, y: 522 }
-  ];
 
   let db = null;
   let mode = 'local';
@@ -213,25 +161,10 @@
   const descInput = document.getElementById('descInput');
   const locInput = document.getElementById('locInput');
   const formError = document.getElementById('formError');
-  const landmarkSelect = document.getElementById('landmarkSelect');
 
-
-  LANDMARKS.forEach((lm, i) => {
-    const opt = document.createElement('option');
-    opt.value = String(i);
-    opt.textContent = lm.name;
-    landmarkSelect.appendChild(opt);
-  });
-  landmarkSelect.addEventListener('change', async () => {
-    const idx = landmarkSelect.value;
-    if (idx === '') return;
-    const lm = LANDMARKS[Number(idx)];
-    await dropPin({ pin: { x: lm.x / MAP_W, y: lm.y / MAP_H }, location: lm.name, description: null });
-    landmarkSelect.value = '';
-  });
 
   function freshnessColor(createdAt) {
-    const t = Math.min(1, Math.max(0, (Date.now() - createdAt) / FIVE_HOURS));
+    const t = Math.min(1, Math.max(0, (Date.now() - createdAt) / TWO_HOURS));
     return `hsl(${142 - 136 * t}, 62%, 45%)`;
   }
   function relTime(ms) {
@@ -243,12 +176,12 @@
     return `${hrs}h ${mins % 60}m ago`;
   }
   function expiryText(createdAt) {
-    const remaining = createdAt + FIVE_HOURS - Date.now();
+    const remaining = createdAt + TWO_HOURS - Date.now();
     if (remaining <= 0) return 'clearing now';
     const mins = Math.round(remaining / 60000);
     return `clears in ${Math.floor(mins / 60)}h ${mins % 60}m`;
   }
-  function isLive(r) { return (Date.now() - r.createdAt) < FIVE_HOURS; }
+  function isLive(r) { return (Date.now() - r.createdAt) < TWO_HOURS; }
 
   function makePinEl(xFrac, yFrac, color) {
     const d = document.createElement('div');
@@ -264,7 +197,7 @@
 
     feedList.innerHTML = '';
     if (live.length === 0) {
-      feedList.innerHTML = '<li class="empty">No active reports. The board clears itself after 5 hours.</li>';
+      feedList.innerHTML = '<li class="empty">No active reports. The board clears itself after 2 hours.</li>';
     } else {
       for (const r of live) {
         const li = document.createElement('li');
