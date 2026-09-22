@@ -95,8 +95,8 @@
   <header class="top">
     <div class="title">
       <p class="kicker">Santa Clara University</p>
-      <h1>Seb Tracker</h1>
-      <p>Click the map or report a sighting.</p>
+      <h1>Perimeter Watch</h1>
+      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 5 hours.</p>
     </div>
     <button class="report-btn" id="openReport">Add a description</button>
   </header>
@@ -105,8 +105,8 @@
 
   <div class="layout">
     <section class="panel">
-      <h2>Where has Seb been seen?</h2>
-      <p class="sub">Tap anywhere to drop a pin or select building</p>
+      <h2>Where it's been seen</h2>
+      <p class="sub">Tap anywhere on the campus map to post a sighting there right away, or pick a building below.</p>
       <div class="map-wrap" id="mapWrap">
         <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
         <div class="pin-overlay" id="pinOverlay"></div>
@@ -154,10 +154,15 @@
 (function () {
   const FIVE_HOURS = 5 * 60 * 60 * 1000;
   const LOCAL_KEY = 'perimeterWatchReportsSCU';
+  const MY_PIN_KEY = 'perimeterWatchMyPinId';
   const MAP_W = 420, MAP_H = 560;
   const LANDMARKS = [
-    { name: 'SWIG 107', x: 140, y: 40 },
+    { name: 'St. Clare Residence Hall', x: 70, y: 337 },
+    { name: 'Jesuit Residence Community', x: 90, y: 78 },
+    { name: 'Performing Arts Annex', x: 235, y: 52 },
     { name: 'Bronco Venture Accelerator', x: 345, y: 68 },
+    { name: 'Music & Dance', x: 95, y: 122 },
+    { name: 'Alumni Science', x: 150, y: 116 },
     { name: 'Daly Science', x: 195, y: 122 },
     { name: 'Mayer Theatre', x: 112, y: 152 },
     { name: "O'Connor Hall", x: 145, y: 162 },
@@ -176,7 +181,7 @@
     { name: "Walsh Admin / Heafey / Kenna Hall", x: 212, y: 257 },
     { name: 'Ricard Observatory', x: 262, y: 247 },
     { name: 'Locatelli Activity Center', x: 332, y: 302 },
-    { name: 'Benson Memorial Center', x: 150, y: 337 },
+    { name: 'Benson Memorial Center', x: 100, y: 337 },
     { name: 'Bronco Bookstore', x: 112, y: 357 },
     { name: 'Learning Commons & Library', x: 192, y: 347 },
     { name: 'Malley Fitness & Recreation Center', x: 237, y: 357 },
@@ -221,7 +226,7 @@
     const idx = landmarkSelect.value;
     if (idx === '') return;
     const lm = LANDMARKS[Number(idx)];
-    await postReport({ pin: { x: lm.x / MAP_W, y: lm.y / MAP_H }, location: lm.name, description: null });
+    await dropPin({ pin: { x: lm.x / MAP_W, y: lm.y / MAP_H }, location: lm.name, description: null });
     landmarkSelect.value = '';
   });
 
@@ -309,7 +314,8 @@
   }
 
   // Shared submit path used by: a map click, picking a building, and the
-  // text-only "add details" modal. Returns true on success.
+  // text-only "add details" modal. Returns the new report's id on
+  // success, or null on failure.
   async function postReport(partial) {
     const report = {
       description: partial.description || null,
@@ -320,22 +326,50 @@
 
     if (mode === 'db') {
       const id = 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      try { await db.doc('reports/' + id).set(report); return true; }
-      catch (e) { return false; }
+      try { await db.doc('reports/' + id).set(report); return id; }
+      catch (e) { return null; }
     } else if (mode === 'api') {
       try {
         const res = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report) });
-        if (!res.ok) return false;
+        if (!res.ok) return null;
+        const saved = await res.json();
         await refreshFromApi();
-        return true;
-      } catch (e) { return false; }
+        return saved.id;
+      } catch (e) { return null; }
     } else {
       report.id = 'local_' + Date.now();
       reports.push(report);
       saveLocal();
       render();
-      return true;
+      return report.id;
     }
+  }
+
+  async function deleteReportById(id) {
+    if (!id) return;
+    if (mode === 'db') {
+      try { await db.doc('reports/' + id).delete(); } catch (e) {}
+    } else if (mode === 'api') {
+      try { await fetch('/api/reports/' + id, { method: 'DELETE' }); } catch (e) {}
+    } else {
+      reports = reports.filter((r) => r.id !== id);
+      saveLocal();
+    }
+  }
+
+  // Only one active pin per browser: dropping a new one removes this
+  // client's previous pin first. Text-only descriptions (no pin) are
+  // unaffected and can stack freely.
+  async function dropPin(partial) {
+    const prevId = localStorage.getItem(MY_PIN_KEY);
+    if (prevId) {
+      await deleteReportById(prevId);
+      localStorage.removeItem(MY_PIN_KEY);
+    }
+    const newId = await postReport(partial);
+    if (newId) localStorage.setItem(MY_PIN_KEY, newId);
+    if (mode === 'api') await refreshFromApi();
+    render();
   }
 
   async function submitDetails() {
@@ -347,8 +381,8 @@
       return;
     }
     formError.style.display = 'none';
-    const ok = await postReport({ description, location, pin: null });
-    if (!ok) {
+    const newId = await postReport({ description, location, pin: null });
+    if (!newId) {
       formError.style.display = 'block';
       formError.textContent = 'Could not post — try again.';
       return;
@@ -375,7 +409,7 @@
     const rect = mapWrap.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (evt.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (evt.clientY - rect.top) / rect.height));
-    await postReport({ pin: { x, y }, description: null, location: null });
+    await dropPin({ pin: { x, y }, description: null, location: null });
   });
 
   function startClock() { setInterval(() => { pruneExpired(); render(); }, 30000); }
