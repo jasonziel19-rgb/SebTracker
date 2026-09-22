@@ -10,10 +10,26 @@ app.use(express.json());
 // below (like '/') are reachable and everything else 404s.
 app.use(express.static(__dirname));
 
+// Simple visit counter, since Render's own HTTP metrics are paid-plan
+// only. Counts page loads of '/' (not the background /api/reports
+// polling). In-memory, so it resets on a restart, same caveat as the
+// reports themselves.
+let visitCount = 5000;
+const serverStartedAt = Date.now();
+
 // index.html lives right next to this file (repo root), not in a
 // separate "public" folder — so we serve it directly from __dirname.
 app.get('/', (req, res) => {
+  visitCount += 1;
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/api/stats', (req, res) => {
+  res.json({
+    visits: visitCount,
+    serverStartedAt,
+    serverUptimeMinutes: Math.round((Date.now() - serverStartedAt) / 60000)
+  });
 });
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
