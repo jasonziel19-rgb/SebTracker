@@ -18,17 +18,17 @@ app.get('/', (req, res) => {
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
-const FIVE_HOURS = 5 * 60 * 60 * 1000;
+const TWO_HOURS = 2 * 60 * 60 * 1000;
 
 // In-memory store. Fine for this use case (reports are meant to expire
-// after 5 hours anyway) but note: a Render free-tier instance that spins
+// after 2 hours anyway) but note: a Render free-tier instance that spins
 // down on inactivity will lose this data on restart. See README if you
 // want it to survive restarts.
 let reports = [];
 
 function pruneExpired() {
   const now = Date.now();
-  reports = reports.filter((r) => now - r.createdAt < FIVE_HOURS);
+  reports = reports.filter((r) => now - r.createdAt < TWO_HOURS);
 }
 
 app.get('/api/reports', (req, res) => {
