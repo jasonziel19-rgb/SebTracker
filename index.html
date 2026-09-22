@@ -93,10 +93,12 @@
     <div class="title">
       <p class="kicker">Santa Clara University</p>
       <h1>Perimeter Watch</h1>
-      <p>A shared board for reporting Sebastian seen on or near campus. Only make informed reports Please!</p>
+      <p>A shared board for reporting something seen on or near campus. Reports fade from green to red as they age, and clear on their own after 2 hours.</p>
     </div>
     <button class="report-btn" id="openReport">Add a report</button>
   </header>
+
+  <p style="margin: -14px 0 20px;"><button class="btn-secondary" id="openFratReport" type="button">At a frat</button></p>
 
   <div id="storageBanner" class="banner" style="display:none;"></div>
 
@@ -108,7 +110,7 @@
         <img id="campusPhoto" src="map.png" alt="Santa Clara University campus map">
         <div class="pin-overlay" id="pinOverlay"></div>
       </div>
-      <p class="map-note">Positions are approximate. Reports fade from green to red as they age and clears after 2 hours.</p>
+      <p class="map-note">Positions are approximate.</p>
     </section>
 
     <section class="panel">
@@ -127,16 +129,32 @@
     <p class="sub">This posts on its own, separate from any pin on the map — add a short description and/or a location.</p>
     <div class="field">
       <label for="descInput">Description <span class="hint">(optional)</span></label>
-      <textarea id="descInput" placeholder="What you saw, what he was doing, direction of travel..."></textarea>
+      <textarea id="descInput" placeholder="What you saw, what it was doing, direction of travel..."></textarea>
     </div>
     <div class="field">
       <label for="locInput">Nearest building or landmark <span class="hint">(optional)</span></label>
-      <input type="text" id="locInput" placeholder="e.g. Swig 107">
+      <input type="text" id="locInput" placeholder="e.g. behind Swig, near the loading dock">
     </div>
     <div id="formError" class="error-text" style="display:none;"></div>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelReport">Cancel</button>
       <button class="report-btn" id="submitReport">Post report</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="fratModalBackdrop">
+  <div class="modal">
+    <h2>At a frat</h2>
+    <p class="sub">This posts on its own, separate from any pin on the map.</p>
+    <div class="field">
+      <label for="fratInput">Which frat, or a description</label>
+      <textarea id="fratInput" placeholder="e.g. Sigma Chi, or describe what's going on"></textarea>
+    </div>
+    <div id="fratFormError" class="error-text" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelFratReport">Cancel</button>
+      <button class="report-btn" id="submitFratReport">Post report</button>
     </div>
   </div>
 </div>
@@ -161,11 +179,16 @@
   const descInput = document.getElementById('descInput');
   const locInput = document.getElementById('locInput');
   const formError = document.getElementById('formError');
+  const fratModalBackdrop = document.getElementById('fratModalBackdrop');
+  const fratInput = document.getElementById('fratInput');
+  const fratFormError = document.getElementById('fratFormError');
 
 
   function freshnessColor(createdAt) {
-    const t = Math.min(1, Math.max(0, (Date.now() - createdAt) / TWO_HOURS));
-    return `hsl(${142 - 136 * t}, 62%, 45%)`;
+    const mins = (Date.now() - createdAt) / 60000;
+    if (mins < 15) return 'hsl(142, 62%, 45%)';  // green
+    if (mins < 30) return 'hsl(28, 75%, 50%)';   // orange
+    return 'hsl(6, 62%, 45%)';                    // red — stays until it expires at 2h
   }
   function relTime(ms) {
     const diff = Date.now() - ms;
@@ -337,6 +360,36 @@
   document.getElementById('cancelReport').addEventListener('click', closeModal);
   document.getElementById('submitReport').addEventListener('click', submitDetails);
   modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+  function openFratModal() {
+    fratInput.value = '';
+    fratFormError.style.display = 'none';
+    fratModalBackdrop.classList.add('open');
+  }
+  function closeFratModal() {
+    fratModalBackdrop.classList.remove('open');
+  }
+  async function submitFratReport() {
+    const text = fratInput.value.trim().slice(0, 400);
+    if (!text) {
+      fratFormError.style.display = 'block';
+      fratFormError.textContent = 'Type a frat name or a short description.';
+      return;
+    }
+    fratFormError.style.display = 'none';
+    const newId = await postReport({ description: text, location: null, pin: null });
+    if (!newId) {
+      fratFormError.style.display = 'block';
+      fratFormError.textContent = 'Could not post — try again.';
+      return;
+    }
+    closeFratModal();
+  }
+
+  document.getElementById('openFratReport').addEventListener('click', openFratModal);
+  document.getElementById('cancelFratReport').addEventListener('click', closeFratModal);
+  document.getElementById('submitFratReport').addEventListener('click', submitFratReport);
+  fratModalBackdrop.addEventListener('click', (e) => { if (e.target === fratModalBackdrop) closeFratModal(); });
 
   mapWrap.addEventListener('click', async (evt) => {
     const rect = mapWrap.getBoundingClientRect();
